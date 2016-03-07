@@ -171,7 +171,16 @@ module Kitchen
           env_variables << "ENV NO_PROXY #{config[:no_proxy]}\n"
         end
 
+        username = config[:username]
         platform = case config[:platform]
+        when 'alpine'
+          <<-eos
+            RUN apk add --update openssh
+            RUN ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -N ''
+            RUN ssh-keygen -t dsa -f /etc/ssh/ssh_host_dsa_key -N ''
+            RUN ln -s /bin/true /bin/useradd
+            RUN adduser #{username} -D
+          eos
         when 'debian', 'ubuntu'
           disable_upstart = <<-eos
             RUN dpkg-divert --local --rename --add /sbin/initctl
@@ -217,7 +226,6 @@ module Kitchen
           "Unknown platform '#{config[:platform]}'"
         end
 
-        username = config[:username]
         password = config[:password]
         public_key = IO.read(config[:public_key]).strip
         homedir = username == 'root' ? '/root' : "/home/#{username}"
